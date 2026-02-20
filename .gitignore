@@ -1,0 +1,19 @@
+# Oracle data files
+data/
+
+# Oracle network config (generated per-environment)
+network/
+
+# Logs and diagnostics
+logs/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

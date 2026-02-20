@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  oracle-tokyo:
+    image: container-registry.oracle.com/database/enterprise:19.3.0.0
+    container_name: oracle-tokyo
+    hostname: oracle-tokyo
+    ports:
+      - "1521:1521"  # SQL*Net
+      - "5500:5500"  # EM Express
+    environment:
+      - ORACLE_SID=TOKYO
+      - ORACLE_PWD=Oracle123
+      - ORACLE_CHARACTERSET=AL32UTF8
+    volumes:
+      - oracle-tokyo-data:/opt/oracle/oradata
+      - ./logs/tokyo:/opt/oracle/diag
+      - ./config/tokyo:/opt/oracle/config
+    networks:
+      oracle-cluster:
+        ipv4_address: 172.20.0.10
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'SELECT 1 FROM DUAL;' | sqlplus -S sys/Oracle123@//localhost/TOKYO as sysdba"]
+      interval: 30s
+      timeout: 20s
+      retries: 15
+      start_period: 300s
+
+  oracle-londres:
+    image: container-registry.oracle.com/database/enterprise:19.3.0.0
+    container_name: oracle-londres
+    hostname: oracle-londres
+    ports:
+      - "1522:1521"
+      - "5501:5500"
+    environment:
+      - ORACLE_SID=LONDRES
+      - ORACLE_PWD=Oracle123
+      - ORACLE_CHARACTERSET=AL32UTF8
+    volumes:
+      - oracle-londres-data:/opt/oracle/oradata
+      - ./logs/londres:/opt/oracle/diag
+      - ./config/londres:/opt/oracle/config
+    networks:
+      oracle-cluster:
+        ipv4_address: 172.20.0.11
+    restart: unless-stopped
+    depends_on:
+      oracle-tokyo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'SELECT 1 FROM DUAL;' | sqlplus -S sys/Oracle123@//localhost/LONDRES as sysdba"]
+      interval: 30s
+      timeout: 20s
+      retries: 15
+      start_period: 300s
+
+  oracle-newyork:
+    image: container-registry.oracle.com/database/enterprise:19.3.0.0
+    container_name: oracle-newyork
+    hostname: oracle-newyork
+    ports:
+      - "1523:1521"
+      - "5502:5500"
+    environment:
+      - ORACLE_SID=NEWYORK
+      - ORACLE_PWD=Oracle123
+      - ORACLE_CHARACTERSET=AL32UTF8
+    volumes:
+      - oracle-newyork-data:/opt/oracle/oradata
+      - ./logs/newyork:/opt/oracle/diag
+      - ./config/newyork:/opt/oracle/config
+    networks:
+      oracle-cluster:
+        ipv4_address: 172.20.0.12
+    restart: unless-stopped
+    depends_on:
+      oracle-tokyo:
+        condition: service_healthy
+      oracle-londres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'SELECT 1 FROM DUAL;' | sqlplus -S sys/Oracle123@//localhost/NEWYORK as sysdba"]
+      interval: 30s
+      timeout: 20s
+      retries: 15
+      start_period: 300s
+
+networks:
+  oracle-cluster:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+
+volumes:
+  oracle-tokyo-data:
+  oracle-londres-data:
+  oracle-newyork-data:

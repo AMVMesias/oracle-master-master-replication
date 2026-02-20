@@ -1,0 +1,40 @@
+-- Configuración inicial LONDRES
+CONNECT sys/Oracle123@localhost:1521/LONDRES as sysdba;
+
+-- Habilitar modo ARCHIVELOG
+SHUTDOWN IMMEDIATE;
+STARTUP MOUNT;
+ALTER DATABASE ARCHIVELOG;
+ALTER DATABASE OPEN;
+
+-- Configurar parámetros para replicación
+ALTER SYSTEM SET log_archive_config='DG_CONFIG=(TOKYO,LONDRES,NEWYORK)' SCOPE=BOTH;
+ALTER SYSTEM SET log_archive_dest_1='LOCATION=/opt/oracle/oradata/LONDRES/archive/ VALID_FOR=(ALL_LOGFILES,ALL_ROLES) DB_UNIQUE_NAME=LONDRES' SCOPE=BOTH;
+ALTER SYSTEM SET log_archive_dest_state_1=ENABLE SCOPE=BOTH;
+ALTER SYSTEM SET log_archive_format='%t_%s_%r.arc' SCOPE=SPFILE;
+
+-- Configurar supplemental logging
+ALTER DATABASE ADD SUPPLEMENTAL LOG DATA;
+ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (PRIMARY KEY) COLUMNS;
+ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (UNIQUE INDEX) COLUMNS;
+
+-- Crear tablespace para replicación
+CREATE TABLESPACE replicate_data
+DATAFILE '/opt/oracle/oradata/LONDRES/replicate_data01.dbf' SIZE 500M
+AUTOEXTEND ON NEXT 100M MAXSIZE 2G;
+
+-- Crear usuario para replicación
+CREATE USER repl_admin IDENTIFIED BY Repl123
+DEFAULT TABLESPACE replicate_data
+TEMPORARY TABLESPACE temp;
+
+GRANT DBA TO repl_admin;
+GRANT CONNECT, RESOURCE TO repl_admin;
+GRANT CREATE SESSION TO repl_admin;
+GRANT SELECT_CATALOG_ROLE TO repl_admin;
+GRANT EXECUTE_CATALOG_ROLE TO repl_admin;
+
+-- Habilitar Golden Gate
+ALTER SYSTEM SET enable_goldengate_replication=TRUE SCOPE=BOTH;
+
+EXIT;
